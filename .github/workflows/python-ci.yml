@@ -27,7 +27,8 @@ jobs:
       - name: Lint Python files
         run: |
           pip install flake8
-          flake8 backend --ignore E501
+          #Ignore some common style warnings during the early development stage
+          flake8 backend --ignore E502,W291,W293,E211,E261,E225,E231,E303,E305,E265,W292
 
       - name: Run basic syntax test
         run: |
