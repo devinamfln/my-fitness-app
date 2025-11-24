@@ -2,51 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Staff Login - MOJ</title>
+    <title>Staff Login</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<div class="login-box">
-    <img src="/static/images/moj-logo.svg" class="logo" alt="MOJ Logo">
+<div class="login-container">
+    <img src="/static/images/moj-logo.svg" class="logo">
 
-    <h2>Staff Login</h2>
+    <h1>Staff Login</h1>
 
-    <form id="loginForm">
+    <form action="/login" method="POST">
         <label for="username">Username</label>
-        <input type="text" id="username" required>
+        <input name="username" type="text" required>
 
         <label for="password">Password</label>
-        <input type="password" id="password" required>
+        <input name="password" type="password" required>
 
         <button type="submit">Login</button>
     </form>
-
-    <p id="error" class="error"></p>
 </div>
-
-<script>
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    const response = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-
-    if (response.status === 200) {
-        window.location.href = "/dashboard";   // redirect to dashboard
-    } else {
-        document.getElementById("error").textContent = data.error;
-    }
-});
-</script>
 
 </body>
 </html>
+
