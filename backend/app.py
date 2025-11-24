@@ -7,22 +7,44 @@ app = Flask(
     static_folder="../frontend/static"
 )
 
+#---------------------
+#LOGIN ROUTES
+
 @app.route("/login", methods=["GET"])
 def login_page():
     return render_template("login.njk")
 #adding login
 
+@app.route("/login", methods=["POST"])
+def staff_login():
+    """Process login form submission"""
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # Temporary hardcoded authentication
+    if username == "admin" and password == "password123":
+        return jsonify({"message": "Login successful", "user": username}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
+
+#----------
+#HOME ROUTES
 
 @app.route("/")
 def home():
     return "Backend connected to AWS PostgreSQL"
 
+#-------------
+#INMATE ROUTE
+
 @app.route("/inmates")
 def get_inmates():
     conn = get_connection()
     cur = conn.cursor()
+
     cur.execute("SELECT inmate_id, first_name, last_name FROM inmates;")
     rows = cur.fetchall()
+
     cur.close()
     conn.close()
 
@@ -63,36 +85,17 @@ def search_inmate():
         for r in rows
     ])
 
-
-@app.route("/prisons")
-def get_prisons():
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("SELECT prison_id, prison_name, location FROM prisons;")
-    rows = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return jsonify ([
-        {"id": r[0], "name": r[1], "location": r[2]}
-        for r in rows
-    ])
-
 @app.route("/inmates/create", methods=["POST"])
 def create_inmate():
-    data = request.json # Read JSON from POST body
+    data = request.json
 
-    # Extract values
-    first_name= data.get("first_name")
-    last_name= data.get("last_name")
-    date_of_birth= data.get("date_of_birth")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    date_of_birth = data.get("date_of_birth")
     height_cm = data.get("height_cm")
     weight_kg = data.get("weight_kg")
     prison_id = data.get("prison_id")
 
-    # Validate required fields
     if not first_name or not last_name or not date_of_birth or not prison_id:
         return jsonify({"error": "Missing required fields"}), 400
 
@@ -116,16 +119,15 @@ def create_inmate():
         "inmate_id": new_id
     }), 201
 
-
 @app.route("/inmates/<int:inmate_id>")
 def get_inmate_details(inmate_id):
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-    SELECT inmate_id, first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id
-    FROM inmates
-    WHERE inmate_id = %s;
+        SELECT inmate_id, first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id
+        FROM inmates
+        WHERE inmate_id = %s;
     """, (inmate_id,))
 
     row = cur.fetchone()
@@ -134,7 +136,7 @@ def get_inmate_details(inmate_id):
     conn.close()
 
     if not row:
-        return jsonify({"error": "Inmate not found"}),404
+        return jsonify({"error": "Inmate not found"}), 404
 
     return jsonify({
         "id": row[0],
@@ -146,16 +148,13 @@ def get_inmate_details(inmate_id):
         "prison_id": row[6]
     })
 
-
 @app.route("/inmates/<int:inmate_id>/update", methods=["PUT"])
 def update_inmate(inmate_id):
-    data = request.json  # Incoming JSON
+    data = request.json
 
-    # Connect to DB
     conn = get_connection()
     cur = conn.cursor()
 
-    # Build dynamic update fields
     fields = []
     values = []
 
@@ -179,46 +178,32 @@ def update_inmate(inmate_id):
     conn.close()
 
     if not updated:
-        return jsonify({"error": 'Inmate not found'}), 404
+        return jsonify({"error": "Inmate not found"}), 404
 
     return jsonify({"message": "Inmate updated successfully", "inmate_id": inmate_id})
 
+#--------------
+#PRISON ROUTES
 
+@app.route("/prisons")
+def get_prisons():
+    conn = get_connection()
+    cur = conn.cursor()
 
-@app.route("/login", methods=["POST"])
-def staff_login():
-    data = request.json
+    cur.execute("SELECT prison_id, prison_name, location FROM prisons;")
+    rows = cur.fetchall()
 
-    username = data.get("username")
-    password = data.get("password")
+    cur.close()
+    conn.close()
 
-    # Simple demo login (hardcoded)
-    if username == "admin" and password == "password123":
-        return jsonify({"message": "Login successful", "staff": username}), 200
-
-    return jsonify({"error": "Invalid credentials"}), 401
-
-@app.route("/login/form", methods=["GET"])
-def login_form():
-    return render_template("login.njk")
-
-
-@app.route("/login/form", methods=["POST"])
-def login_form_submit():
-    username = request.form.get("username")
-    password = request.form.get("password")
-
-    if username == "admin" and password == "password123":
-        return "Login successful (HTML mode)"
-
-    return render_template("login.njk", error="Invalid credentials")
+    return jsonify ([
+        {"id": r[0], "name": r[1], "location": r[2]}
+        for r in rows
+    ])
 
 
 
-
-
-
-
+#--------------
 #Always last
 if __name__ == "__main__":
     app.run(debug=True)
