@@ -1,7 +1,16 @@
 from flask import Flask, jsonify, request
 from db import get_connection
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder="../frontend/templates",
+    static_folder="../frontend/static"
+)
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    return render_template("login.njk")
+#adding login
 
 
 @app.route("/")
@@ -189,6 +198,20 @@ def staff_login():
 
     return jsonify({"error": "Invalid credentials"}), 401
 
+@app.route("/login/form", methods=["GET"])
+def login_form():
+    return render_template("login.njk")
+
+
+@app.route("/login/form", methods=["POST"])
+def login_form_submit():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    if username == "admin" and password == "password123":
+        return "Login successful (HTML mode)"
+
+    return render_template("login.njk", error="Invalid credentials")
 
 
 

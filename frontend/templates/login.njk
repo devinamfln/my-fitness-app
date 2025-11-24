@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="login-container">
+    <img src="/static/images/moj-logo.svg" class="logo">
+
+    <h2>Ministry of Justice</h2>
+    <h3>Secure Staff Login</h3>
+
+    <form method="POST" action="/login">
+        <label>Username</label>
+        <input type="text" name="username" required>
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
+        <button type="submit">Sign in</button>
+    </form>
+</div>
+
+</body>
+</html>
