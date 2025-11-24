@@ -2,27 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Staff Login</title>
+    <title>Staff Login - MOJ</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<div class="login-container">
-    <img src="/static/images/moj-logo.svg" class="logo">
+<div class="login-box">
+    <img src="/static/images/moj-logo.svg" class="logo" alt="MOJ Logo">
 
-    <h2>Ministry of Justice</h2>
-    <h3>Secure Staff Login</h3>
+    <h2>Staff Login</h2>
 
-    <form method="POST" action="/login">
-        <label>Username</label>
-        <input type="text" name="username" required>
+    <form id="loginForm">
+        <label for="username">Username</label>
+        <input type="text" id="username" required>
 
-        <label>Password</label>
-        <input type="password" name="password" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" required>
 
-        <button type="submit">Sign in</button>
+        <button type="submit">Login</button>
     </form>
+
+    <p id="error" class="error"></p>
 </div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const response = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (response.status === 200) {
+        window.location.href = "/dashboard";   // redirect to dashboard
+    } else {
+        document.getElementById("error").textContent = data.error;
+    }
+});
+</script>
 
 </body>
 </html>
