@@ -98,7 +98,7 @@ def dashboard_search():
         for r in rows
     ]
 
-    return render_template("dashboard_results.njk", inmates=inmates)
+    return render_template("dashboard_results.njk", inmates=inmates, query=query)
 
 
 #-------------
@@ -214,6 +214,49 @@ def get_inmate_details(inmate_id):
         "weight_kg": row[5],
         "prison_id": row[6]
     })
+
+@app.route("/dashboard/inmates/<int:inmate_id>")
+def inmate_details_page(inmate_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT i.inmate_id,
+               i.first_name,
+               i.last_name,
+               i.date_of_birth,
+               i.height_cm,
+               i.weight_kg,
+               COALESCE(p.prison_name, 'Unknown') AS prison_name
+        FROM inmates i
+        LEFT JOIN prisons p ON i.prison_id = p.prison_id
+        WHERE i.inmate_id = %s;
+    """, (inmate_id,))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return render_template("inmate_details.njk", error="Inmate not found"), 404
+
+    inmate = {
+        "id": row[0],
+        "first_name": row[1],
+        "last_name": row[2],
+        "date_of_birth": row[3],
+        "height_cm": row[4],
+        "weight_kg": row[5],
+        "prison_name": row[6],
+    }
+
+    bmi = None
+    if inmate["height_cm"] and inmate["weight_kg"]:
+        height_m = inmate["height_cm"] / 100
+        bmi = round(float(inmate["weight_kg"]) / (height_m * height_m), 1)
+
+    return render_template("inmate_details.njk", inmate=inmate, bmi=bmi)
+
 
 @app.route("/inmates/<int:inmate_id>/update", methods=["PUT"])
 def update_inmate(inmate_id):
