@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" class="govuk-template">
+<head>
+    <meta charset="utf-8">
+    <title>{{ title | default("MOJ Dashboard") }}</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body class="govuk-template__body">
+
+<header class="govuk-header" role="banner">
+    <div class="govuk-header__content">
+        <span class="govuk-header__link govuk-header__link--service-name">
+            Ministry of Justice – Staff Portal
+        </span>
+    </div>
+</header>
+
+<main class="govuk-main-wrapper">
+    {% block content %}
+    {% endblock %}
+</main>
+
+</body>
+</html>

@@ -19,13 +19,16 @@ def login_page():
 def login_form():
     return render_template("login.njk")
 
+
+from flask import redirect, url_for
+
 @app.route("/login/form", methods=["POST"])
 def login_form_submit():
     username = request.form.get("username")
     password = request.form.get("password")
 
     if username == "admin" and password == "password123":
-        return redirect("/dashboard")
+        return redirect(url_for("dashboard_page"))
 
     return render_template("login.njk", error="Invalid credentials")
 
@@ -56,6 +59,49 @@ def home():
 def dashboard():
     return render_template("dashboard.njk")
 
+@app.route("/dashboard")
+def dashboard_page():
+    return render_template("dashboard.njk")
+
+@app.route("/dashboard/search")
+def dashboard_search():
+    query = request.args.get("query", "")
+
+    # Call your inmate search API (database)
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT inmates.inmate_id,
+               inmates.first_name,
+               inmates.last_name,
+               prisons.prison_name
+        FROM inmates
+        LEFT JOIN prisons ON inmates.prison_id = prisons.prison_id
+        WHERE LOWER(first_name) LIKE %s
+           OR LOWER(last_name) LIKE %s
+           OR LOWER(first_name || ' ' || last_name) LIKE %s;
+    """, (
+        f"%{query.lower()}%",
+        f"%{query.lower()}%",
+        f"%{query.lower()}%"
+    ))
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    inmates = [
+        {
+            "id": r[0],
+            "first_name": r[1],
+            "last_name": r[2],
+            "prison_name": r[3] or "Unknown"
+        }
+        for r in rows
+    ]
+
+    return render_template("dashboard_results.njk", inmates=inmates)
 
 
 #-------------

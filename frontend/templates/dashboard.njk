@@ -1,25 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Staff Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
+{% extends "layout.njk" %}
 
-<header>
-    <img src="/static/images/moj-logo.svg" alt="MOJ Logo" class="moj-logo">
-    <h1>Staff Dashboard</h1>
-</header>
+{% block content %}
+<div class="govuk-width-container">
 
-<section>
-    <h2>Search for an inmate</h2>
+    <h1 class="govuk-heading-l">Staff Dashboard</h1>
 
-    <form action="/inmate/search" method="GET">
-        <input type="text" name="query" placeholder="Enter name or ID" required>
-        <button type="submit">Search</button>
+    <form action="/dashboard/search" method="GET" class="govuk-form-group">
+        <label class="govuk-label" for="query">Search inmates</label>
+
+        <input
+            class="govuk-input"
+            id="query"
+            name="query"
+            type="text"
+            placeholder="Enter inmate name"
+            required
+        >
+
+        <button class="govuk-button govuk-!-margin-top-3" type="submit">
+            Search
+        </button>
     </form>
-</section>
 
-</body>
-</html>
+</div>
+{% endblock %}
+
