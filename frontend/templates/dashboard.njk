@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header>
+    <img src="/static/images/moj-logo.svg" alt="MOJ Logo" class="moj-logo">
+    <h1>Staff Dashboard</h1>
+</header>
+
+<section>
+    <h2>Search for an inmate</h2>
+
+    <form action="/inmate/search" method="GET">
+        <input type="text" name="query" placeholder="Enter name or ID" required>
+        <button type="submit">Search</button>
+    </form>
+</section>
+
+</body>
+</html>

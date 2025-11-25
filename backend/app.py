@@ -9,11 +9,27 @@ app = Flask(
 
 #---------------------
 #LOGIN ROUTES
-
+#login page HTML
 @app.route("/login", methods=["GET"])
 def login_page():
     return render_template("login.njk")
 #adding login
+
+@app.route("/login/form", methods=["GET"])
+def login_form():
+    return render_template("login.njk")
+
+@app.route("/login/form", methods=["POST"])
+def login_form_submit():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    if username == "admin" and password == "password123":
+        return redirect("/dashboard")
+
+    return render_template("login.njk", error="Invalid credentials")
+
+#API login JSON
 
 @app.route("/login", methods=["POST"])
 def staff_login():
@@ -33,6 +49,14 @@ def staff_login():
 @app.route("/")
 def home():
     return "Backend connected to AWS PostgreSQL"
+
+#-------
+#Dashboard ROUTE
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.njk")
+
+
 
 #-------------
 #INMATE ROUTE
