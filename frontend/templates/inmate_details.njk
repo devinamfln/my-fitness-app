@@ -1,49 +1,45 @@
 {% extends "layout.njk" %}
-
 {% block content %}
-<div class="govuk-width-container">
 
-    <h1 class="govuk-heading-l">
-        {{ inmate.first_name }} {{ inmate.last_name }}
-    </h1>
+<h1 class="govuk-heading-l">{{ inmate.first_name }} {{ inmate.last_name }}</h1>
 
-    <dl class="govuk-summary-list">
+<dl class="govuk-summary-list">
 
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Inmate ID</dt>
-            <dd class="govuk-summary-list__value">{{ inmate.id }}</dd>
-        </div>
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Inmate ID</dt>
+        <dd class="govuk-summary-list__value">{{ inmate.id }}</dd>
+    </div>
 
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Prison</dt>
-            <dd class="govuk-summary-list__value">{{ inmate.prison_name }}</dd>
-        </div>
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Prison</dt>
+        <dd class="govuk-summary-list__value">{{ inmate.prison_name }}</dd>
+    </div>
 
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Date of Birth</dt>
-            <dd class="govuk-summary-list__value">{{ inmate.date_of_birth }}</dd>
-        </div>
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Date of Birth</dt>
+        <dd class="govuk-summary-list__value">{{ inmate.date_of_birth }}</dd>
+    </div>
 
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Height (cm)</dt>
-            <dd class="govuk-summary-list__value">{{ inmate.height_cm }}</dd>
-        </div>
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Height</dt>
+        <dd class="govuk-summary-list__value">{{ inmate.height_cm }} cm</dd>
+    </div>
 
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Weight (kg)</dt>
-            <dd class="govuk-summary-list__value">{{ inmate.weight_kg }}</dd>
-        </div>
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Weight</dt>
+        <dd class="govuk-summary-list__value">{{ inmate.weight_kg }} kg</dd>
+    </div>
 
-        {% if bmi %}
-        <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">BMI</dt>
-            <dd class="govuk-summary-list__value">{{ bmi }}</dd>
-        </div>
-        {% endif %}
+    {% if bmi %}
+    <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">BMI</dt>
+        <dd class="govuk-summary-list__value">{{ bmi }}</dd>
+    </div>
+    {% endif %}
 
-    </dl>
+</dl>
 
-    <a href="/dashboard" class="govuk-button govuk-button--secondary">Back to dashboard</a>
+<a href="/dashboard" class="govuk-button govuk-button--secondary">Back</a>
 
-</div>
 {% endblock %}
+

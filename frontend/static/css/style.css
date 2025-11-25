@@ -52,3 +52,11 @@ button {
 button:hover {
     background: #003078;
 }
+
+.govuk-width-container {
+    margin-top: 40px;
+}
+
+.govuk-summary-list__key {
+    font-weight: bold;
+}

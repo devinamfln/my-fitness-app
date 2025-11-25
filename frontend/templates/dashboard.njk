@@ -1,23 +1,26 @@
 {% extends "layout.njk" %}
 
 {% block content %}
-<div class="govuk-width-container">
-    <h1 class="govuk-heading-l">Staff dashboard</h1>
 
-    <form action="/dashboard/search" method="GET" class="govuk-form-group">
-        <label class="govuk-label" for="query">Search inmates</label>
-        <input
-            class="govuk-input"
-            id="query"
-            name="query"
-            type="text"
-            placeholder="Enter inmate name"
-            required
-        >
-        <button class="govuk-button govuk-!-margin-top-3" type="submit">
-            Search
-        </button>
-    </form>
-</div>
+<h1 class="govuk-heading-l">Search Inmates</h1>
+
+<form action="/dashboard/search" method="GET" class="govuk-form-group">
+
+    <label class="govuk-label" for="query">Enter name</label>
+    <input
+        id="query"
+        name="query"
+        type="text"
+        class="govuk-input"
+        placeholder="e.g. John Smith"
+        required
+    >
+
+    <button type="submit" class="govuk-button govuk-!-margin-top-3">
+        Search
+    </button>
+</form>
+
 {% endblock %}
+
 

@@ -1,33 +1,25 @@
 {% extends "layout.njk" %}
 
 {% block content %}
-<h1>Search Results</h1>
+
+<h1 class="govuk-heading-l">Search Results</h1>
 
 {% if inmates|length == 0 %}
-    <p>No inmates found.</p>
+    <p class="govuk-body">No inmates found.</p>
 {% else %}
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Prison</th>
-            <th>View</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for inmate in inmates %}
-        <tr>
-            <td>{{ inmate.first_name }} {{ inmate.last_name }}</td>
-            <td>{{ inmate.prison_name }}</td>
-            <td>
-                <a href="/dashboard/inmates/{{ inmate.id }}">View Details</a>
-            </td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    <ul class="govuk-list govuk-list--bullet">
+        {% for inmate in inmates %}
+            <li>
+                <a class="govuk-link" href="/dashboard/inmates/{{ inmate.id }}">
+                    {{ inmate.first_name }} {{ inmate.last_name }} — {{ inmate.prison_name }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
 {% endif %}
 
-<a href="/dashboard">← Back to Dashboard</a>
+<a href="/dashboard" class="govuk-link">← Back to search</a>
+
 {% endblock %}
+
 
