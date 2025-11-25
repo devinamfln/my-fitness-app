@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, redirect
+from flask import Flask, jsonify, request, render_template, redirect, url_for
 from db import get_connection
 
 app = Flask(
@@ -18,9 +18,6 @@ def login_page():
 @app.route("/login/form", methods=["GET"])
 def login_form():
     return render_template("login.njk")
-
-
-from flask import redirect, url_for
 
 @app.route("/login/form", methods=["POST"])
 def login_form_submit():
