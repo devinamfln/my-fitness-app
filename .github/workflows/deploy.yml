@@ -2,8 +2,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
 
 jobs:
   deploy:
@@ -11,24 +10,32 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install SSH key
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      - name: Install SSH client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
 
-      - name: Copy project to EC2
+      - name: Create private key
         run: |
-          scp -o StrictHostKeyChecking=no -r backend/ frontend/ requirements.txt \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/my-fitness-app/
+          echo "$EC2_SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
 
-      - name: Restart Flask service
+      - name: Copy backend + frontend to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd /home/ec2-user/my-fitness-app/backend
-          source venv/bin/activate
-          pip install -r ../requirements.txt
-          sudo systemctl restart flask
+          scp -i private_key.pem -o StrictHostKeyChecking=no -r \
+            backend/ frontend/ requirements.txt \
+            $EC2_USER@$EC2_HOST:/home/$EC2_USER/my-fitness-app/
+
+      - name: Restart Flask on EC2
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            cd /home/$EC2_USER/my-fitness-app
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            sudo systemctl restart flask
+            sudo systemctl status flask --no-pager
           EOF
+
 
