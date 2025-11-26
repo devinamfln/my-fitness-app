@@ -20,6 +20,15 @@ jobs:
           echo "$EC2_SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
 
+      - name: Debug secrets
+        run: |
+          echo "EC2_HOST=[$EC2_HOST]"
+          echo "EC2_USER=[$EC2_USER]"
+          echo "Checking if secrets are empty:"
+          if [ -z "$EC2_HOST" ]; then echo "❌ EC2_HOST is EMPTY"; else echo "✔ EC2_HOST loaded"; fi
+          if [ -z "$EC2_USER" ]; then echo "❌ EC2_USER is EMPTY"; else echo "✔ EC2_USER loaded"; fi
+      
+
       - name: Copy backend + frontend to EC2
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no -r \
