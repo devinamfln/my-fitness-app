@@ -7,6 +7,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    #
+
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code
@@ -22,11 +28,10 @@ jobs:
 
       - name: Debug secrets
         run: |
-          echo "EC2_HOST=[$EC2_HOST]"
-          echo "EC2_USER=[$EC2_USER]"
-          echo "Checking if secrets are empty:"
-          if [ -z "$EC2_HOST" ]; then echo "❌ EC2_HOST is EMPTY"; else echo "✔ EC2_HOST loaded"; fi
-          if [ -z "$EC2_USER" ]; then echo "❌ EC2_USER is EMPTY"; else echo "✔ EC2_USER loaded"; fi
+          # GitHub masks secrets in logs, so you will see *** instead of values
+          # But this proves the variables are no longer empty
+          echo "EC2_HOST length: ${#EC2_HOST}"
+          echo "EC2_USER length: ${#EC2_USER}"
       
 
       - name: Copy backend + frontend to EC2
@@ -38,11 +43,12 @@ jobs:
       - name: Restart Flask on EC2
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-            cd /home/$EC2_USER/my-fitness-app
+            cd ~/my-fitness-app
             python3 -m venv venv
             source venv/bin/activate
             pip install --upgrade pip
             pip install -r requirements.txt
+          
             sudo systemctl restart flask
             sudo systemctl status flask --no-pager
           EOF
