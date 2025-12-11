@@ -39,7 +39,7 @@ jobs:
 
   terraform-plan:
     runs-on: ubuntu-latest
-    needs: python-ci        # only run if Python job passes
+    needs: build
 
     steps:
       - name: Checkout repository
