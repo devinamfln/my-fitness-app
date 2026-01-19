@@ -1,9 +1,8 @@
-import psycopg2
+from db import get_connection
 
-def get_connection():
-    return psycopg2.connect(
-        host="myfitness.c1kosaucayij.eu-north-1.rds.amazonaws.com",
-        database="myfitness",
-        user="postgres",
-        password="321Admin123!!"
-    )
+try:
+    conn = get_connection()
+    print("connected successfully")
+    conn.close()
+except Exception as e:
+    print("Error",e)

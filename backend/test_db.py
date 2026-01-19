@@ -1,3 +1,5 @@
+from unittest.mock import patch
+import pytest
 from db import get_connection
 
 try:
@@ -6,3 +8,5 @@ try:
     conn.close()
 except Exception as e:
     print("Error",e)
+
+
