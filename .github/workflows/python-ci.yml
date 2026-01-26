@@ -55,7 +55,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           #arn specific IAM role
-          role-to-assume: arn:aws:iam::799672786842:role/GitHubActions-Terraform-Role
+          role-to-assume: arn:aws:iam::799672786842:role/web_id_myfitness
           aws-region: eu-north-1
           role-session-name: GitHubActions-Terraform-Plan-Session
 
@@ -87,7 +87,7 @@ jobs:
       - name: Configure AWS Credentials (Apply)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::799672786842:role/GitHubActions-Terraform-Role
+          role-to-assume: arn:aws:iam::799672786842:role/web_id_myfitness
           aws-region: eu-north-1
           role-session-name: GitHubActions-Terraform-Apply-Session
 
