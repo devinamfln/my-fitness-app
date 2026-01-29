@@ -1,12 +1,12 @@
-from unittest.mock import patch
 import pytest
 from db import get_connection
 
-try:
-    conn = get_connection()
-    print("connected successfully")
-    conn.close()
-except Exception as e:
-    print("Error",e)
+def test_database_connection():
+    try:
+        conn = get_connection()
+        assert conn is not None
+        conn.close()
+    except Exception as e:
+        pytest.fail(f"Database connection failed: {e}")
 
 

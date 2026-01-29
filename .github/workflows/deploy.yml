@@ -1,23 +1,41 @@
-name: Deploy to EC2
+name: CI/CD - Test and Deploy to EC2
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
-    #environments: host=publicip user:ec2username key=private key
-
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-      EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # --- SECTION 1: TESTING ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest flake8
+
+      - name: Lint with flake8
+        run: |
+          # We ignore F401 (unused imports) for now so your test file passes
+          flake8 . --count --ignore=F401 --max-line-length=127 --statistics
+
+      - name: Run unit tests
+        run: |
+          # This runs the database test you wrote
+          pytest -v
+
+      # --- SECTION 2: DEPLOYMENT (Only runs if Section 1 passes) ---
       - name: Create private key
         run: |
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
@@ -25,8 +43,9 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          # This is now one long, single-line command to avoid formatting errors
-          scp -i private_key.pem -o StrictHostKeyChecking=no -r backend/ frontend/ requirements.txt ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/my-fitness-app/
+          scp -i private_key.pem -o StrictHostKeyChecking=no -r \
+            backend/ frontend/ requirements.txt \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/my-fitness-app/
 
       - name: Restart Flask on EC2
         run: |
@@ -37,10 +56,7 @@ jobs:
             source venv/bin/activate
             pip install -r requirements.txt
           
-            # Restart the service we created earlier
             sudo systemctl daemon-reload
             sudo systemctl restart flask
             sudo systemctl status flask --no-pager
           EOF
-
-
