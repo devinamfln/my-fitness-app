@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    #
+    #environments: host=publicip user:ec2username key=private key
 
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
