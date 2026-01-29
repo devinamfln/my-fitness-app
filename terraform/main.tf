@@ -83,7 +83,7 @@ resource "aws_instance" "prison_backend" {
   instance_type = "t3.micro" #Free tier
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = "devina-key"   # Must exist in your AWS account
+  key_name = "my-fitness-key"   # Must exist in your AWS account
 
   # --- NEW: bootstrap script ---
   user_data = <<-EOF

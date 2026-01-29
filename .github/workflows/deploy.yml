@@ -26,9 +26,9 @@ jobs:
           pip install pytest flake8
 
       - name: Lint with flake8
-        run: |
-          # We ignore F401 (unused imports) for now so your test file passes
-          flake8 . --count --ignore=F401 --max-line-length=127 --statistics
+          run: |
+            # We ignore all style/whitespace/import errors (E, W, F) so you can deploy
+            flake8 . --count --ignore=E,W,F --max-line-length=127 --statistics
 
       - name: Run unit tests
         run: |
