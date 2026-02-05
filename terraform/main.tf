@@ -42,7 +42,7 @@ data "aws_ami" "amazon_linux" {
 
 # --- Security Group ---
 resource "aws_security_group" "app_sg" {
-  name        = "web-server-sg"
+  name        = "web-server-sg-v2" #Bypass the duplicate error
   description = "Allow inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
@@ -97,27 +97,24 @@ resource "aws_instance" "prison_backend" {
     #!/bin/bash
     set -e
 
-    # Update packages
+    # Update and install dependencies
     dnf update -y
-
-    # Install Python, pip and OpenSSL
     dnf install -y python3 python3-pip openssl
 
-    # Create app directory
-    mkdir -p /home/ec2-user/app/certs
-    cd /home/ec2-user/app/certs
+    # Setup directory (Matched to your CI/CD path)
+    mkdir -p /home/ec2-user/my-fitness-app/certs
+    cd /home/ec2-user/my-fitness-app/certs
 
-    # Generate self-signed certificate (valid 365 days)
-    # Using CN=localhost just to avoid needing Terraform interpolation
+    # Generate SSL Certs
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
       -keyout devina.key -out devina.crt \
       -subj "/C=GB/ST=GreaterManchester/L=Manchester/O=Devina/OU=DevOps/CN=localhost"
-
     chmod 600 devina.key devina.crt
 
-    # Create the Flask app
-    cat > /home/ec2-user/app/app.py << 'APP'
+    # Create the Flask app file
+    cat > /home/ec2-user/my-fitness-app/app.py << 'APP'
 from flask import Flask
+import os
 
 app = Flask(__name__)
 
@@ -125,27 +122,40 @@ app = Flask(__name__)
 def home():
     return "Hello from HTTPS Flask on EC2!"
 
-@app.route("/dashboard")
-def dashboard():
-    return "This is the dashboard over HTTPS."
-
 if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        ssl_context=("certs/devina.crt", "certs/devina.key")
-    )
+    # Point to the certs folder created above
+    app.run(host="0.0.0.0", port=5000, ssl_context=("certs/devina.crt", "certs/devina.key"))
 APP
 
-    # Install Flask
-    pip3 install flask
+    # Setup Virtual Environment and Flask
+    cd /home/ec2-user/my-fitness-app
+    python3 -m venv venv
+    ./venv/bin/pip install flask
 
-    # Fix permissions so ec2-user owns the app
-    chown -R ec2-user:ec2-user /home/ec2-user/app
+    # CREATE SYSTEMD SERVICE (This makes 'systemctl restart' work)
+    cat > /etc/systemd/system/flask.service << 'SERVICE'
+[Unit]
+Description=Flask app
+After=network.target
 
-    # Start the app in the background
-    cd /home/ec2-user/app
-    sudo -u ec2-user nohup python3 app.py > app.log 2>&1 &
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/my-fitness-app
+# Using the venv path ensures all dependencies are found
+ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    # Start the service
+    systemctl daemon-reload
+    systemctl enable flask
+    systemctl start flask
+
+    # Fix permissions
+    chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
   EOF
 
   tags = {
