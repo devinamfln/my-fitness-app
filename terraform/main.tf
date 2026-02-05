@@ -24,19 +24,19 @@ data "aws_subnets" "default" {
 }
 
 
-# --- Latest Amazon Linux 2023 AMI (x86_64) ---
+# --- Latest Amazon Linux 2023 AMI (x86_64) --- CHANGING TO ARM64 to fit 1cpu limit
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-x86_64"]
+    values = ["al2023-ami-*-arm64"] #Changed was x86_64
   }
 
   filter {
     name   = "architecture"
-    values = ["x86_64"]
+    values = ["arm64"] #Changed was x86_64
   }
 }
 
