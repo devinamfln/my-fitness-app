@@ -33,7 +33,28 @@ jobs:
         run: |
           pytest -v
 
-      # --- SECTION 2: DOCKER DEPLOYMENT ---
+      # --- SECTION 2: INFRASTRUCTURE (TERRAFORM) ---
+      # This step uses your new IAM User keys to "log in" to AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        # -auto-approve ensures the pipeline doesn't stop to ask "yes/no"
+        run: terraform apply -auto-approve
+
+      # --- SECTION 3: DOCKER DEPLOYMENT ---
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -49,14 +70,16 @@ jobs:
             if [ -d ".git" ]; then
               git pull origin main
             else
-              git clone https://github.com/${{ github.repository }} .
+              # Using token-based clone for private repos if needed
+              git clone https://github.com/${{ github.repository }} . || git pull origin main
             fi
 
             # Inject the Cloudflare token into the .env file
             echo "CLOUDFLARE_TOKEN=${{ secrets.CLOUDFLARE_TOKEN }}" > .env
 
             # Start the Docker containers
+            # --build ensures it picks up your latest code changes
             docker compose up -d --build
             
-            # Cleanup old unused images to save disk space
+            # Cleanup old unused images to save disk space on a small t3.nano
             docker image prune -f
