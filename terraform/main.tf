@@ -88,7 +88,7 @@ resource "aws_security_group" "app_sg" {
 # --- EC2 Instance ---
 resource "aws_instance" "prison_backend" {
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t2.micro" #this it the 1-vCPU fix to stay in account limits
+  instance_type = "t3.micro" #
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   key_name = "devina-myfitness"   # Must exist in your AWS account
