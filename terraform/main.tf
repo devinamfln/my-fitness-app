@@ -31,8 +31,8 @@ data "aws_ami" "amazon_linux_2023" {
 
   filter {
     name   = "name"
-    # This string ensures you get Amazon Linux 2023, x86 version, not ARM
-    values = ["al2023-ami-kernel-*-x86_64"]
+    # This broader filter is more reliable for AL2023
+    values = ["al2023-ami-2023*-x86_64"]
   }
 
   filter {
