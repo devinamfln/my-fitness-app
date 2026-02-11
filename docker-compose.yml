@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: devina_user
+      POSTGRES_PASSWORD: fitness_password_123
+      POSTGRES_DB: inmate_fitness
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      # This tells Flask/Django to talk to the 'db' container
+      DATABASE_URL: postgresql://devina_user:fitness_password_123@db:5432/inmate_fitness
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TOKEN}
+    command: tunnel --no-autoupdate run
+
+volumes:
+  postgres_data:

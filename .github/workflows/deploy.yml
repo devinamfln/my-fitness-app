@@ -31,31 +31,32 @@ jobs:
 
       - name: Run unit tests
         run: |
-          # This runs the database test you wrote
           pytest -v
 
-      # --- SECTION 2: DEPLOYMENT (Only runs if Section 1 passes) ---
-      - name: Create private key
-        run: |
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
+      # --- SECTION 2: DOCKER DEPLOYMENT ---
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            # Create project directory if it doesn't exist
+            mkdir -p ~/my-fitness-app
+            cd ~/my-fitness-app
 
-      - name: Copy files to EC2
-        run: |
-          scp -i private_key.pem -o StrictHostKeyChecking=no -r \
-            backend/ frontend/ requirements.txt \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/my-fitness-app/
+            # Get the latest code
+            if [ -d ".git" ]; then
+              git pull origin main
+            else
+              git clone https://github.com/${{ github.repository }} .
+            fi
 
-      - name: Restart Flask on EC2
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /home/ec2-user/my-fitness-app
-            # Create venv if it doesn't exist
-            if [ ! -d "venv" ]; then python3 -m venv venv; fi
-            source venv/bin/activate
-            pip install -r requirements.txt
-          
-            sudo systemctl daemon-reload
-            sudo systemctl restart flask
-            sudo systemctl status flask --no-pager
-          EOF
+            # Inject the Cloudflare token into the .env file
+            echo "CLOUDFLARE_TOKEN=${{ secrets.CLOUDFLARE_TOKEN }}" > .env
+
+            # Start the Docker containers
+            docker compose up -d --build
+            
+            # Cleanup old unused images to save disk space
+            docker image prune -f

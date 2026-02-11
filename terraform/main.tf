@@ -42,7 +42,7 @@ data "aws_ami" "amazon_linux" {
 
 # --- Security Group ---
 resource "aws_security_group" "app_sg" {
-  name        = "web-server-sg-v2" #Bypass the duplicate error
+  name_prefix = "web-server-sg-" #Bypass the duplicate error
   description = "Allow inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
