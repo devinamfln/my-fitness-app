@@ -25,18 +25,19 @@ data "aws_subnets" "default" {
 
 
 # --- Latest Amazon Linux 2023 AMI (x86_64) --- CHANGING TO ARM64 to fit 1cpu limit
-data "aws_ami" "amazon_linux" {
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-arm64"] #Changed was x86_64
+    # This string ensures you get Amazon Linux 2023, x86 version, not ARM
+    values = ["al2023-ami-kernel-*-x86_64"]
   }
 
   filter {
     name   = "architecture"
-    values = ["arm64"] #Changed was x86_64
+    values = ["x86_64"]
   }
 }
 
@@ -86,7 +87,7 @@ resource "aws_security_group" "app_sg" {
 
 # --- EC2 Instance ---
 resource "aws_instance" "prison_backend" {
-  ami           = data.aws_ami.amazon_linux.id
+  ami           = data.aws_ami.amazon_linux_2023.id
   instance_type = "t3.micro" #Free tier
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
