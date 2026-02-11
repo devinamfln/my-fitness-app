@@ -96,7 +96,7 @@ resource "aws_instance" "prison_backend" {
   instance_type = "t3.micro" #
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = "aws_key_pair.deployer.key_name"   # Must exist in your AWS account
+  key_name = aws_key_pair.deployer.key_name   # Must exist in your AWS account
 
   # --- NEW: bootstrap script ---
   user_data = <<-EOF
