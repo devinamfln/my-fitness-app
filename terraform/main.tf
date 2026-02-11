@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-north-1"
+  region = "eu-west-2"
 }
 
 # --- Default VPC and Subnets ---
@@ -88,10 +88,10 @@ resource "aws_security_group" "app_sg" {
 # --- EC2 Instance ---
 resource "aws_instance" "prison_backend" {
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t3.nano" #this it the 1-vCPU fix
+  instance_type = "t2.micro" #this it the 1-vCPU fix to stay in account limits
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = "my-fitness-key"   # Must exist in your AWS account
+  key_name = "devina-myfitness"   # Must exist in your AWS account
 
   # --- NEW: bootstrap script ---
   user_data = <<-EOF
