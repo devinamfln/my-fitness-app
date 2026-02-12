@@ -1,3 +1,10 @@
+# 1. ADD THIS TO THE TOP
+variable "tunnel_token" {
+  description = "Cloudflare Tunnel Token"
+  type        = string
+  sensitive   = true  # This prevents the token from appearing in GitHub logs
+}
+
 terraform {
   required_providers {
     aws = {
@@ -24,7 +31,7 @@ data "aws_subnets" "default" {
 }
 
 
-# --- Latest Amazon Linux 2023 AMI (x86_64) --- CHANGING TO ARM64 to fit 1cpu limit
+# --- Latest Amazon Linux 2023 AMI (x86_64)
 data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
@@ -96,7 +103,7 @@ resource "aws_instance" "prison_backend" {
   instance_type = "t3.micro" #
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = aws_key_pair.deployer.key_name   # Must exist in your AWS account
+  key_name = aws_key_pair.deployer.key_name   # no quotes
 
   # --- NEW: bootstrap script ---
   user_data = <<-EOF
@@ -106,6 +113,18 @@ resource "aws_instance" "prison_backend" {
     # Update and install dependencies
     dnf update -y
     dnf install -y python3 python3-pip openssl
+
+    # 2. NEW: Install Cloudflare Tunnel (cloudflared)
+    # This architecture matches your t3.micro (x86_64)
+    curl -L --output cloudflared.rpm https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm
+    dnf install -y ./cloudflared.rpm
+
+    # 3. Start the tunnel using the variable
+    # Replace [YOUR_TUNNEL_TOKEN] with the string from your Cloudflare dashboard
+    cloudflared service install ${var.tunnel_token}
+
+    systemctl enable cloudflared
+    systemctl start cloudflared
 
     # Setup directory (Matched to your CI/CD path)
     mkdir -p /home/ec2-user/my-fitness-app/certs
@@ -177,4 +196,9 @@ output "ec2_public_ip" {
 
 output "ec2_public_dns" {
   value = aws_instance.prison_backend.public_dns
+}
+
+output "instance_public_ip" {
+  description = "The public IP address of the EC2 instance"
+  value       = aws_instance.prison_backend.public_ip
 }

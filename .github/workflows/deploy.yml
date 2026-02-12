@@ -51,7 +51,10 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ./terraform
-        # -auto-approve ensures the pipeline doesn't stop to ask "yes/no"
+        env:
+          TF_VAR_tunnel_token: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
 
       # --- SECTION 3: DOCKER DEPLOYMENT ---
@@ -74,8 +77,10 @@ jobs:
               git clone https://github.com/${{ github.repository }} . || git pull origin main
             fi
 
-            # Inject the Cloudflare token into the .env file
+          
+            # Inject both just to be safe, so your app has everything it needs
             echo "CLOUDFLARE_TOKEN=${{ secrets.CLOUDFLARE_TOKEN }}" > .env
+            echo "CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" >> .env
 
             # Start the Docker containers
             # --build ensures it picks up your latest code changes
