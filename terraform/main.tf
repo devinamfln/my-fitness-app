@@ -1,8 +1,7 @@
-# 1. ADD THIS TO THE TOP
 variable "tunnel_token" {
   description = "Cloudflare Tunnel Token"
   type        = string
-  sensitive   = true  # This prevents the token from appearing in GitHub logs
+  sensitive   = true
 }
 
 terraform {
@@ -15,7 +14,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-west-2" #London
+  region = "eu-west-2" # London
 }
 
 # --- Default VPC and Subnets ---
@@ -30,15 +29,13 @@ data "aws_subnets" "default" {
   }
 }
 
-
-# --- Latest Amazon Linux 2023 AMI (x86_64)
+# --- Latest Amazon Linux 2023 AMI ---
 data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    # This broader filter is more reliable for AL2023
     values = ["al2023-ami-2023*-x86_64"]
   }
 
@@ -50,19 +47,17 @@ data "aws_ami" "amazon_linux_2023" {
 
 # --- Security Group ---
 resource "aws_security_group" "app_sg" {
-  name_prefix = "web-server-sg-" #Bypass the duplicate error
+  name_prefix = "web-server-sg-"
   description = "Allow inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
-  # Change from home IP
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # CHANGED FROM HOME IP
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Flask app on port 5000 (public)
   ingress {
     from_port   = 80
     to_port     = 80
@@ -70,13 +65,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-# adding connectivity
   ingress {
     from_port   = 5000
     to_port     = 5000
@@ -92,69 +80,39 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-
 # --- EC2 Instance ---
 resource "aws_instance" "prison_backend" {
-  ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t3.micro" #
-  subnet_id = data.aws_subnets.default.ids[0]
+  ami                    = data.aws_ami.amazon_linux_2023.id
+  instance_type          = "t3.micro"
+  subnet_id              = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = "devina-myfitness"
+  key_name               = "devina-myfitness"
 
-  # --- NEW: bootstrap script ---
   user_data = <<EOF
-    #!/bin/bash
-    set -e
+#!/bin/bash
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-    # Update and install dependencies
-    dnf update -y
-    dnf install -y python3 python3-pip openssl
+echo "Starting setup..."
+dnf update -y
+dnf install -y python3 python3-pip openssl git
 
-    # 2. NEW: Install Cloudflare Tunnel (cloudflared)
-    # This architecture matches your t3.micro (x86_64)
-    curl -L --output cloudflared.rpm https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm
-    dnf install -y ./cloudflared.rpm
+# Install Cloudflared
+curl -L --output /tmp/cloudflared.rpm https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm
+dnf install -y /tmp/cloudflared.rpm
 
-    # 3. Start the tunnel using the variable
-    # Replace [YOUR_TUNNEL_TOKEN] with the string from your Cloudflare dashboard
-    cloudflared service install ${var.tunnel_token}
+# Install Cloudflared Service
+cloudflared service install ${var.tunnel_token}
 
-    systemctl enable cloudflared
-    systemctl start cloudflared
+# Setup App Directory
+mkdir -p /home/ec2-user/my-fitness-app
+cd /home/ec2-user/my-fitness-app
 
-    # Setup directory (Matched to your CI/CD path)
-    mkdir -p /home/ec2-user/my-fitness-app/certs
-    cd /home/ec2-user/my-fitness-app/certs
+# Setup Python Venv
+python3 -m venv venv
+./venv/bin/pip install flask
 
-    # Generate SSL Certs
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-      -keyout devina.key -out devina.crt \
-      -subj "/C=GB/ST=GreaterManchester/L=Manchester/O=Devina/OU=DevOps/CN=localhost"
-    chmod 600 devina.key devina.crt
-
-    # Create the Flask app file
-    cat > /home/ec2-user/my-fitness-app/app.py << 'PYTHON_APP'
-from flask import Flask
-import os
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "Hello from HTTPS Flask on EC2!"
-
-if __name__ == "__main__":
-    # Point to the certs folder created above
-    app.run(host="0.0.0.0", port=5000, ssl_context=("certs/devina.crt", "certs/devina.key"))
-APP
-
-    # Setup Virtual Environment and Flask
-    cd /home/ec2-user/my-fitness-app
-    python3 -m venv venv
-    ./venv/bin/pip install flask
-
-    # CREATE SYSTEMD SERVICE (This makes 'systemctl restart' work)
-    cat > /etc/systemd/system/flask.service << 'SERVICE'
+# Create the service file
+cat <<SERVICE > /etc/systemd/system/flask.service
 [Unit]
 Description=Flask app
 After=network.target
@@ -162,7 +120,6 @@ After=network.target
 [Service]
 User=ec2-user
 WorkingDirectory=/home/ec2-user/my-fitness-app
-# Using the venv path ensures all dependencies are found
 ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python app.py
 Restart=always
 
@@ -170,31 +127,37 @@ Restart=always
 WantedBy=multi-user.target
 SERVICE
 
-    # Start the service
-    systemctl daemon-reload
-    systemctl enable flask
-    systemctl start flask
+systemctl daemon-reload
+systemctl enable flask
+systemctl start flask
+systemctl enable cloudflared
+systemctl start cloudflared
 
-    # Fix permissions
-    chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
-  EOF
+chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
+echo "Setup complete!"
+EOF
 
   tags = {
     Name = "PrisonProjectBackend"
   }
 }
 
+# --- Elastic IP ---
+resource "aws_eip" "backend_eip" {
+  instance = aws_instance.prison_backend.id
+  domain   = "vpc"
 
-# --- Output ---
-output "ec2_public_ip" {
-  value = aws_instance.prison_backend.public_ip
+  tags = {
+    Name = "PrisonProjectEIP"
+  }
 }
 
-output "ec2_public_dns" {
-  value = aws_instance.prison_backend.public_dns
+# --- Outputs ---
+output "static_public_ip" {
+  description = "The PERMANENT Elastic IP address for GitHub Secrets"
+  value       = aws_eip.backend_eip.public_ip
 }
 
-output "instance_public_ip" {
-  description = "The public IP address of the EC2 instance"
-  value       = aws_instance.prison_backend.public_ip
+output "ec2_id" {
+  value = aws_instance.prison_backend.id
 }
