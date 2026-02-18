@@ -65,30 +65,43 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
+            script: |
             # 1. Install Git
             sudo dnf install -y git
             
-            # 2. Navigate to project folder and fix permissions
+            # 2. Setup folder permissions
             sudo mkdir -p /home/ec2-user/my-fitness-app
             sudo chown ec2-user:ec2-user /home/ec2-user/my-fitness-app
             cd /home/ec2-user/my-fitness-app
             
-            # 3. Handle the Code (Clone if empty, Pull if it exists)
+            # 3. Handle the Code (Smart Clone/Pull)
             if [ ! -d ".git" ]; then
-              git clone https://github.com/${{ github.repository }} .
+              # If the folder exists but isn't a git repo, move files out or delete
+              rm -rf * git clone https://github.com/${{ github.repository }} .
             else
               git pull origin main
             fi
             
-            # 4. Update the Python environment
-            if [ -d "venv" ]; then
-              ./venv/bin/pip install --upgrade pip
-              ./venv/bin/pip install -r requirements.txt || ./venv/bin/pip install flask
+            # 4. Wait for Terraform user_data to finish (Initial Setup)
+            echo "Waiting for system services to be ready..."
+            for i in {1..30}; do
+              if [ -f /etc/systemd/system/flask.service ]; then break; fi
+              sleep 2
+            done
+
+            # 5. Update Python environment
+            # If venv doesn't exist yet, create it
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
             fi
+            ./venv/bin/pip install --upgrade pip
+            ./venv/bin/pip install -r requirements.txt || ./venv/bin/pip install flask
             
-            # 5. Restart the Flask app service
-            sudo systemctl restart flask
+            # 6. Restart services (using sudo since they are system-wide)
+            sudo systemctl daemon-reload
+            sudo systemctl restart flask || echo "Flask not ready yet"
+            sudo systemctl restart cloudflared || echo "Cloudflared not ready yet"
             
-            # 6. Verify services are running
+            # 7. Final status check
             sudo systemctl status flask --no-pager
             sudo systemctl status cloudflared --no-pager
