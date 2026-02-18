@@ -92,21 +92,17 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-# 1. Tell Terraform to create/register the key in whatever region we are in
-resource "aws_key_pair" "deployer" {
-  key_name   = "devina-myfitness-tf-v2" # Giving it a slightly different name to avoid conflict
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFLuMWIUUH4bhkFR5kiwfEbn/AUPj/oR2ZjhFE0xVNnTOrUG8/z23FnVwh1+rjpoKHoCGAhr2atjS5UbjbfrUdos64888LSx80zCDeyaLdgXUMKl5HPRQ1kGYCaPX885yQbwGtGV5dcI8DExACOgo9npgxl3fuo9uaBKR9AvpT/Yd1NBbsg1je3/Ukap0a29awe3gxyWmi0sgwsNmZDBCb4HRLfDOtjOnumxgWRY+POgMQgQnLygdkn13xsyM8KyOoEQWYhSAZXnxIiLreM8LGjx5CSciuWORPHBGKuy9awo9n5HFTH88BYkcy+HmXBW1DIU99Aa+RDBtG1ucrufAv"
-}
+
 # --- EC2 Instance ---
 resource "aws_instance" "prison_backend" {
   ami           = data.aws_ami.amazon_linux_2023.id
   instance_type = "t3.micro" #
   subnet_id = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name = aws_key_pair.deployer.key_name   # no quotes
+  key_name = "devina-myfitness"
 
   # --- NEW: bootstrap script ---
-  user_data = <<-EOF
+  user_data = <<EOF
     #!/bin/bash
     set -e
 
@@ -137,7 +133,7 @@ resource "aws_instance" "prison_backend" {
     chmod 600 devina.key devina.crt
 
     # Create the Flask app file
-    cat > /home/ec2-user/my-fitness-app/app.py << 'APP'
+    cat > /home/ec2-user/my-fitness-app/app.py << 'PYTHON_APP'
 from flask import Flask
 import os
 
