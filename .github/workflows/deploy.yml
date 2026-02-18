@@ -56,7 +56,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
-
+          
       # --- SECTION 3: DEPLOYMENT ---
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
@@ -75,19 +75,24 @@ jobs:
 
             # 3. Handle the Code (Smart Clone/Pull)
             if [ ! -d ".git" ]; then
-              rm -rf * git clone https://github.com/${{ github.repository }}.git .
+              echo "Fresh clone..."
+              find . -mindepth 1 -delete
+              git clone https://github.com/${{ github.repository }}.git .
             else
-              git pull origin main
+              echo "Updating existing code..."
+              git fetch --all
+              git reset --hard origin/main
             fi
-
+            
             # 4. Update Python environment
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
             ./venv/bin/pip install --upgrade pip
-            # We check requirements.txt in the root OR backend folder
-            if [ -f "backend/requirements.txt" ]; then
-              ./venv/bin/pip install -r backend/requirements.txt
+            
+            # Check requirements.txt in root (since we found it there earlier)
+            if [ -f "requirements.txt" ]; then
+              ./venv/bin/pip install -r requirements.txt
             else
               ./venv/bin/pip install flask
             fi
