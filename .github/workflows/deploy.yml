@@ -71,21 +71,20 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            # 1. Install Git
-            sudo dnf install -y git
-
-            # 2. Setup folder permissions
-            sudo mkdir -p /home/ec2-user/my-fitness-app
-            sudo chown ec2-user:ec2-user /home/ec2-user/my-fitness-app
+            # 1. Take ownership of the base folder
+            sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
+            
+            # 2. Go to the project root
             cd /home/ec2-user/my-fitness-app
-
-            # 3. Handle the Code (Smart Clone/Pull)
+            
+            # 3. Handle the Code (Improved Clone/Pull)
             if [ ! -d ".git" ]; then
-              echo "Fresh clone..."
-              find . -mindepth 1 -delete
+              echo "Fresh setup: Cloning repository..."
+              # Clean out everything EXCEPT the venv if it exists
+              find . -maxdepth 1 ! -name 'venv' ! -name '.' -exec rm -rf {} +
               git clone https://github.com/${{ github.repository }}.git .
             else
-              echo "Updating existing code..."
+              echo "Existing setup: Pulling latest changes..."
               git fetch --all
               git reset --hard origin/main
             fi
@@ -94,17 +93,20 @@ jobs:
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
-            ./venv/bin/pip install --upgrade pip
             
+            # Navigate to backend to install specific requirements
+            cd backend
+            ../venv/bin/pip install --upgrade pip
             if [ -f "requirements.txt" ]; then
-              ./venv/bin/pip install -r requirements.txt
+              ../venv/bin/pip install -r requirements.txt
             else
-              ./venv/bin/pip install flask
+              ../venv/bin/pip install flask
             fi
-
-            # 5. Restart services
+            
+            # 5. Systemd Refresh and Restart
             sudo systemctl daemon-reload
+            sudo systemctl enable flask
             sudo systemctl restart flask
-
+            
             # 6. Final status check
             sudo systemctl status flask --no-pager

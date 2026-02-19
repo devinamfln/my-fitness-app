@@ -316,4 +316,6 @@ def get_prisons():
 #--------------
 #Always last
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Bind to 0.0.0.0 so it is visible to the Cloudflare Tunnel
+    # debug=False is safer for production/live demos
+    app.run(host="0.0.0.0", port=5000, debug=False)
