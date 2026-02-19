@@ -119,8 +119,9 @@ After=network.target
 
 [Service]
 User=ec2-user
-WorkingDirectory=/home/ec2-user/my-fitness-app
-ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python app.py
+WorkingDirectory=/home/ec2-user/my-fitness-app/backend
+# Change app.py to ./app.py or the full path to be safe:
+ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python /home/ec2-user/my-fitness-app/backend/app.py
 Restart=always
 
 [Install]
@@ -152,9 +153,9 @@ resource "aws_eip" "backend_eip" {
   }
 }
 
-# --- Outputs ---
+# --- Outputs
 output "static_public_ip" {
-  description = "The PERMANENT Elastic IP address for GitHub Secrets"
+  description = "The public IP of the Elastic IP"
   value       = aws_eip.backend_eip.public_ip
 }
 

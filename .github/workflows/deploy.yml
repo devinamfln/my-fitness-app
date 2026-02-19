@@ -31,7 +31,6 @@ jobs:
 
       - name: Run unit tests
         run: |
-          # If you don't have tests yet, you can comment this out to prevent failure
           pytest -v || echo "No tests found yet"
 
       # --- SECTION 2: INFRASTRUCTURE (TERRAFORM) ---
@@ -44,24 +43,31 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false # Crucial for getting raw outputs easily
 
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
 
       - name: Terraform Apply
+        id: tf_apply
         working-directory: ./terraform
         env:
           TF_VAR_tunnel_token: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -auto-approve
-          
+        run: |
+          terraform apply -auto-approve
+          # This captures the IP from your main.tf output and stores it in GITHUB_OUTPUT
+          echo "static_public_ip=$(terraform output -raw static_public_ip)" >> $GITHUB_OUTPUT
+
       # --- SECTION 3: DEPLOYMENT ---
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}
+          # This pulls the IP from the 'tf_apply' step output automatically!
+          host: ${{ steps.tf_apply.outputs.static_public_ip }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
@@ -90,7 +96,6 @@ jobs:
             fi
             ./venv/bin/pip install --upgrade pip
             
-            # Check requirements.txt in root (since we found it there earlier)
             if [ -f "requirements.txt" ]; then
               ./venv/bin/pip install -r requirements.txt
             else
