@@ -1,5 +1,4 @@
 import sqlite3
-import os
 
 def seed():
     # This creates 'fitness.db' in the same folder as seed.py
