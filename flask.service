@@ -1,0 +1,15 @@
+[Unit]
+Description=Flask app
+After=network.target
+
+[Service]
+User=ec2-user
+# This must match where your app.py actually sits
+WorkingDirectory=/home/ec2-user/my-fitness-app/backend
+Environment="PATH=/home/ec2-user/my-fitness-app/venv/bin"
+# This points to the python inside your venv
+ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

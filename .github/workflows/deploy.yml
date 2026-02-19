@@ -70,48 +70,39 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            # 1. Wait for System Initialization
-            echo "Waiting for system initialization..."
-            until command -v git &> /dev/null; do
-              echo "Git not found yet. Sleeping for 10 seconds..."
-              sleep 10
-            done
+            # 1. Wait for system initialization
+            echo "Waiting for system..."
+            until command -v git &> /dev/null; do sleep 5; done
 
             # 2. Setup Directory
             sudo mkdir -p /home/ec2-user/my-fitness-app
             sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
             cd /home/ec2-user/my-fitness-app
 
-            # 3. Handle the Code
-            if [ ! -d ".git" ]; then
-              echo "Fresh setup: Cloning repository..."
-              find . -maxdepth 1 ! -name 'venv' ! -name '.' -exec rm -rf {} +
-              git clone https://github.com/${{ github.repository }}.git .
-            else
-              echo "Updating existing code..."
-              git fetch --all
-              git reset --hard origin/main
-            fi
+            # 3. Force a clean clone
+            echo "Cleaning old files and cloning fresh..."
+            # We remove everything to avoid the "destination path exists" error
+            rm -rf .git backend frontend terraform requirements.txt flask.service
+            git clone https://github.com/${{ github.repository }}.git .
 
-            # 4. Setup Python and Install Requirements
+            # 4. Setup Python Environment
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
-
             ./venv/bin/pip install --upgrade pip
-
-            if [ -f "requirements.txt" ]; then
-              ./venv/bin/pip install -r requirements.txt
-            fi
+            ./venv/bin/pip install -r requirements.txt
 
             # 5. Seed the Database
             cd backend
             ../venv/bin/python seed.py
+            cd ..
 
-            # 6. Systemd Refresh and Restart
+            # 6. Install and Start the Service
+            # This moves your file from GitHub to the Linux system folder
+            sudo cp flask.service /etc/systemd/system/flask.service
             sudo systemctl daemon-reload
             sudo systemctl enable flask
             sudo systemctl restart flask
-
-            # 7. Final status check
+            
+            # 7. Check if it worked
             sudo systemctl status flask --no-pager
