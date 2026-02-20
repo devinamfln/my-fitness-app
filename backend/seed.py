@@ -2,7 +2,7 @@ import sqlite3
 
 def seed():
     # This creates 'fitness.db' in the same folder as seed.py
-    db_path = 'fitness.db'
+    db_path = '/home/ec2-user/my-fitness-app/backend/fitness.db'
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()

@@ -8,12 +8,10 @@ app = Flask(
 )
 
 #---------------------
-#LOGIN ROUTES
-#login page HTML
+# LOGIN ROUTES
 @app.route("/login", methods=["GET"])
 def login_page():
     return render_template("login.njk")
-#adding login
 
 @app.route("/login/form", methods=["GET"])
 def login_form():
@@ -23,39 +21,27 @@ def login_form():
 def login_form_submit():
     username = request.form.get("username")
     password = request.form.get("password")
-
     if username == "admin" and password == "password123":
         return redirect(url_for("dashboard_page"))
-
     return render_template("login.njk", error="Invalid credentials")
-
-#API login JSON
 
 @app.route("/login", methods=["POST"])
 def staff_login():
-    """Process login form submission"""
     username = request.form.get("username")
     password = request.form.get("password")
-
-    # Temporary hardcoded authentication
     if username == "admin" and password == "password123":
         return jsonify({"message": "Login successful", "user": username}), 200
-
     return jsonify({"error": "Invalid credentials"}), 401
 
-#----------
-#HOME ROUTES
-
+#---------------------
+# HOME ROUTES
 @app.route("/")
 def home():
-    return "Backend connected to AWS PostgreSQL"
+    # Updated message to reflect SQLite for your resubmission
+    return "Backend connected to SQLite Database (Data Encrypted via Tunnel)"
 
-#-------
-#Dashboard ROUTE
-@app.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.njk")
-
+#---------------------
+# DASHBOARD ROUTES
 @app.route("/dashboard")
 def dashboard_page():
     return render_template("dashboard.njk")
@@ -63,11 +49,8 @@ def dashboard_page():
 @app.route("/dashboard/search")
 def dashboard_search():
     query = request.args.get("query", "")
-
-    # Call your inmate search API (database)
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("""
         SELECT inmates.inmate_id,
                inmates.first_name,
@@ -75,247 +58,120 @@ def dashboard_search():
                prisons.prison_name
         FROM inmates
         LEFT JOIN prisons ON inmates.prison_id = prisons.prison_id
-        WHERE LOWER(first_name) LIKE %s
-           OR LOWER(last_name) LIKE %s
-           OR LOWER(first_name || ' ' || last_name) LIKE %s;
-    """, (
-        f"%{query.lower()}%",
-        f"%{query.lower()}%",
-        f"%{query.lower()}%"
-    ))
-
+        WHERE LOWER(first_name) LIKE ?
+           OR LOWER(last_name) LIKE ?
+           OR LOWER(first_name || ' ' || last_name) LIKE ?
+    """, (f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%"))
     rows = cur.fetchall()
     cur.close()
     conn.close()
-
-    inmates = [
-        {
-            "id": r[0],
-            "first_name": r[1],
-            "last_name": r[2],
-            "prison_name": r[3] or "Unknown"
-        }
-        for r in rows
-    ]
-
+    inmates = [{"id": r[0], "first_name": r[1], "last_name": r[2], "prison_name": r[3] or "Unknown"} for r in rows]
     return render_template("dashboard_results.njk", inmates=inmates, query=query)
 
-
-#-------------
-#INMATE ROUTE
-
+#---------------------
+# INMATE ROUTES
 @app.route("/inmates")
 def get_inmates():
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("SELECT inmate_id, first_name, last_name FROM inmates;")
     rows = cur.fetchall()
-
     cur.close()
     conn.close()
+    return jsonify([{"id": r[0], "first_name": r[1], "last_name": r[2]} for r in rows])
 
-    return jsonify([
-        {"id": r[0], "first_name": r[1], "last_name": r[2]}
-        for r in rows
-
-    ])
-
-
-# inmate search API
 @app.route("/inmate/search")
 def search_inmate():
     query = request.args.get("query", "")
-
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("""
         SELECT inmate_id, first_name, last_name
         FROM inmates 
-        WHERE LOWER(first_name) LIKE %s
-            OR LOWER(last_name) LIKE %s
-            OR LOWER(first_name || ' '|| last_name) LIKE %s;
-    
-    """, (
-        f"%{query.lower()}%",
-        f"%{query.lower()}%",
-        f"%{query.lower()}%"
-    ))
-
+        WHERE LOWER(first_name) LIKE ?
+            OR LOWER(last_name) LIKE ?
+            OR LOWER(first_name || ' '|| last_name) LIKE ?;
+    """, (f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%"))
     rows = cur.fetchall()
     cur.close()
     conn.close()
-
-    return jsonify([
-        {"id": r[0], "first_name": r[1], "last_name": r[2]}
-        for r in rows
-    ])
+    return jsonify([{"id": r[0], "first_name": r[1], "last_name": r[2]} for r in rows])
 
 @app.route("/inmates/create", methods=["POST"])
 def create_inmate():
     data = request.json
-
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    date_of_birth = data.get("date_of_birth")
-    height_cm = data.get("height_cm")
-    weight_kg = data.get("weight_kg")
-    prison_id = data.get("prison_id")
-
-    if not first_name or not last_name or not date_of_birth or not prison_id:
+    fields = ["first_name", "last_name", "date_of_birth", "height_cm", "weight_kg", "prison_id"]
+    if not all(data.get(f) for f in ["first_name", "last_name", "date_of_birth", "prison_id"]):
         return jsonify({"error": "Missing required fields"}), 400
 
     conn = get_connection()
     cur = conn.cursor()
-
+    # SQLite uses ? and does not support RETURNING
     cur.execute("""
         INSERT INTO inmates (first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING inmate_id;
-    """, (first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id))
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (data["first_name"], data["last_name"], data["date_of_birth"], data.get("height_cm"), data.get("weight_kg"), data["prison_id"]))
 
-    new_id = cur.fetchone()[0]
-
+    new_id = cur.lastrowid
     conn.commit()
     cur.close()
     conn.close()
-
-    return jsonify({
-        "message": "Inmate created successfully",
-        "inmate_id": new_id
-    }), 201
+    return jsonify({"message": "Inmate created successfully", "inmate_id": new_id}), 201
 
 @app.route("/inmates/<int:inmate_id>")
 def get_inmate_details(inmate_id):
     conn = get_connection()
     cur = conn.cursor()
-
-    cur.execute("""
-        SELECT inmate_id, first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id
-        FROM inmates
-        WHERE inmate_id = %s;
-    """, (inmate_id,))
-
+    cur.execute("SELECT inmate_id, first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id FROM inmates WHERE inmate_id = ?;", (inmate_id,))
     row = cur.fetchone()
-
     cur.close()
     conn.close()
-
-    if not row:
-        return jsonify({"error": "Inmate not found"}), 404
-
-    return jsonify({
-        "id": row[0],
-        "first_name": row[1],
-        "last_name": row[2],
-        "date_of_birth": row[3],
-        "height_cm": row[4],
-        "weight_kg": row[5],
-        "prison_id": row[6]
-    })
+    if not row: return jsonify({"error": "Inmate not found"}), 404
+    return jsonify({"id": row[0], "first_name": row[1], "last_name": row[2], "date_of_birth": row[3], "height_cm": row[4], "weight_kg": row[5], "prison_id": row[6]})
 
 @app.route("/dashboard/inmates/<int:inmate_id>")
 def inmate_details_page(inmate_id):
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("""
-        SELECT i.inmate_id,
-               i.first_name,
-               i.last_name,
-               i.date_of_birth,
-               i.height_cm,
-               i.weight_kg,
-               COALESCE(p.prison_name, 'Unknown') AS prison_name
-        FROM inmates i
-        LEFT JOIN prisons p ON i.prison_id = p.prison_id
-        WHERE i.inmate_id = %s;
+        SELECT i.inmate_id, i.first_name, i.last_name, i.date_of_birth, i.height_cm, i.weight_kg, COALESCE(p.prison_name, 'Unknown')
+        FROM inmates i LEFT JOIN prisons p ON i.prison_id = p.prison_id WHERE i.inmate_id = ?;
     """, (inmate_id,))
-
     row = cur.fetchone()
     cur.close()
     conn.close()
-
-    if not row:
-        return render_template("inmate_details.njk", error="Inmate not found"), 404
-
-    inmate = {
-        "id": row[0],
-        "first_name": row[1],
-        "last_name": row[2],
-        "date_of_birth": row[3],
-        "height_cm": row[4],
-        "weight_kg": row[5],
-        "prison_name": row[6],
-    }
-
-    bmi = None
-    if inmate["height_cm"] and inmate["weight_kg"]:
-        height_m = inmate["height_cm"] / 100
-        bmi = round(float(inmate["weight_kg"]) / (height_m * height_m), 1)
-
+    if not row: return render_template("inmate_details.njk", error="Inmate not found"), 404
+    inmate = {"id": row[0], "first_name": row[1], "last_name": row[2], "date_of_birth": row[3], "height_cm": row[4], "weight_kg": row[5], "prison_name": row[6]}
+    bmi = round(float(inmate["weight_kg"]) / ((inmate["height_cm"]/100)**2), 1) if inmate["height_cm"] and inmate["weight_kg"] else None
     return render_template("inmate_details.njk", inmate=inmate, bmi=bmi)
-
 
 @app.route("/inmates/<int:inmate_id>/update", methods=["PUT"])
 def update_inmate(inmate_id):
     data = request.json
-
     conn = get_connection()
     cur = conn.cursor()
-
-    fields = []
-    values = []
-
+    fields, values = [], []
     for key in ["first_name", "last_name", "date_of_birth", "height_cm", "weight_kg", "prison_id"]:
         if key in data:
-            fields.append(f"{key} = %s")
+            fields.append(f"{key} = ?")
             values.append(data[key])
-
-    if not fields:
-        return jsonify({"error": "No fields provided"}), 400
-
+    if not fields: return jsonify({"error": "No fields provided"}), 400
     values.append(inmate_id)
-
-    sql = f"UPDATE inmates SET {', '.join(fields)} WHERE inmate_id = %s RETURNING inmate_id;"
-
-    cur.execute(sql, tuple(values))
-    updated = cur.fetchone()
-
+    cur.execute(f"UPDATE inmates SET {', '.join(fields)} WHERE inmate_id = ?;", tuple(values))
     conn.commit()
     cur.close()
     conn.close()
-
-    if not updated:
-        return jsonify({"error": "Inmate not found"}), 404
-
     return jsonify({"message": "Inmate updated successfully", "inmate_id": inmate_id})
-
-#--------------
-#PRISON ROUTES
 
 @app.route("/prisons")
 def get_prisons():
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("SELECT prison_id, prison_name, location FROM prisons;")
     rows = cur.fetchall()
-
     cur.close()
     conn.close()
+    return jsonify([{"id": r[0], "name": r[1], "location": r[2]} for r in rows])
 
-    return jsonify ([
-        {"id": r[0], "name": r[1], "location": r[2]}
-        for r in rows
-    ])
-
-
-
-#--------------
-#Always last
 if __name__ == "__main__":
-    # Bind to 0.0.0.0 so it is visible to the Cloudflare Tunnel
-    # debug=False is safer for production/live demos
     app.run(host="0.0.0.0", port=5000, debug=False)

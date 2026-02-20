@@ -1,14 +1,19 @@
 [Unit]
-Description=Flask app
+Description=Gunicorn instance to serve Flask Prison App
 After=network.target
 
 [Service]
 User=ec2-user
-# This must match where your app.py actually sits
+Group=ec2-user
+# Ensures we are in the folder where app.py and db.py live
 WorkingDirectory=/home/ec2-user/my-fitness-app/backend
 Environment="PATH=/home/ec2-user/my-fitness-app/venv/bin"
-# This points to the python inside your venv
-ExecStart=/home/ec2-user/my-fitness-app/venv/bin/python app.py
+
+# --workers 3: Allows handling multiple users at once
+# --bind 0.0.0.0:5000: Connects the app to your Cloudflare Tunnel
+# app:app: Tells Gunicorn to look in 'app.py' for the 'app' variable
+ExecStart=/home/ec2-user/my-fitness-app/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
+
 Restart=always
 
 [Install]
