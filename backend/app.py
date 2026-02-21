@@ -99,25 +99,46 @@ def search_inmate():
 
 @app.route("/inmates/create", methods=["POST"])
 def create_inmate():
-    data = request.json
-    fields = ["first_name", "last_name", "date_of_birth", "height_cm", "weight_kg", "prison_id"]
-    if not all(data.get(f) for f in ["first_name", "last_name", "date_of_birth", "prison_id"]):
-        return jsonify({"error": "Missing required fields"}), 400
+    # 1. Handle different data types (JSON vs Form)
+    if request.is_json:
+        data = request.get_json()
+    else:
+        # This allows standard HTML <form> submissions to work
+        data = request.form
 
-    conn = get_connection()
-    cur = conn.cursor()
-    # SQLite uses ? and does not support RETURNING
-    cur.execute("""
-        INSERT INTO inmates (first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (data["first_name"], data["last_name"], data["date_of_birth"], data.get("height_cm"), data.get("weight_kg"), data["prison_id"]))
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
 
-    new_id = cur.lastrowid
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({"message": "Inmate created successfully", "inmate_id": new_id}), 201
+    # 2. Extract with defaults to prevent KeyErrors
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    dob = data.get("date_of_birth", "2000-01-01")
+    height = data.get("height_cm", 0)
+    weight = data.get("weight_kg", 0)
+    prison_id = data.get("prison_id", 1)
 
+    if not first_name or not last_name:
+        return jsonify({"error": "First and Last name are required"}), 400
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # 3. Secure SQLite Insert
+        cur.execute("""
+            INSERT INTO inmates (first_name, last_name, date_of_birth, height_cm, weight_kg, prison_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (first_name, last_name, dob, height, weight, prison_id))
+
+        new_id = cur.lastrowid
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"message": "Inmate created successfully", "id": new_id}), 201
+    except Exception as e:
+        # This catches DB errors (like missing tables) and reports them safely
+        return jsonify({"error": str(e)}), 500
 @app.route("/inmates/<int:inmate_id>")
 def get_inmate_details(inmate_id):
     conn = get_connection()
