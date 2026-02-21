@@ -79,26 +79,33 @@ jobs:
             echo "Waiting for system..."
             until command -v git &> /dev/null; do sleep 10; done
 
+            # 1. Create and fix permissions
             sudo mkdir -p /home/ec2-user/my-fitness-app
             sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
             cd /home/ec2-user/my-fitness-app
 
-            echo "Cleaning and cloning..."
-            rm -rf .git backend frontend terraform requirements.txt flask.service
+            echo "Force cleaning directory..."
+            # Deletes all files and hidden folders to allow fresh git clone
+            rm -rf ..?* .[!.]* * echo "Cloning fresh copy..."
             git clone https://github.com/${{ github.repository }}.git .
 
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
-            fi
+            # 2. Rebuild Environment
+            echo "Setting up Virtual Environment..."
+            python3 -m venv venv
             ./venv/bin/pip install --upgrade pip
             ./venv/bin/pip install -r requirements.txt
 
+            # 3. Database Seed
+            echo "Seeding Database..."
             cd backend
             ../venv/bin/python seed.py
             cd ..
 
+            # 4. Service Setup
+            echo "Configuring Systemd..."
+            # Note: This assumes flask.service is in your root directory
             sudo cp flask.service /etc/systemd/system/flask.service
             sudo systemctl daemon-reload
             sudo systemctl enable flask
             sudo systemctl restart flask
-            sudo systemctl status flask --no-pager
+            sudo systemctl is-active flask
