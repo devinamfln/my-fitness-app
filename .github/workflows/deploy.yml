@@ -93,15 +93,22 @@ jobs:
             rm -rf venv
             python3 -m venv venv --without-pip
             source venv/bin/activate
-            curl https://bootstrap.pypa.io/get-pip.py | python3
             
-            ./venv/bin/pip install --upgrade pip
-            ./venv/bin/pip install -r requirements.txt
+            # Use curl to get the bootstrap script
+            curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+            python3 get-pip.py
+            
+            # Use 'python3 -m pip' for maximum reliability on Amazon Linux
+            python3 -m pip install --upgrade "pip<24.1"
+            python3 -m pip install -r requirements.txt
+            
+            # Clean up the bootstrap script
+            rm get-pip.py
 
             # 3. Database Seed
             echo "Seeding Database..."
             cd backend
-            ../venv/bin/python seed.py
+            /home/ec2-user/my-fitness-app/venv/bin/python3 seed.py
             cd ..
 
             # 4. Service Setup
