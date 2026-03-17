@@ -79,17 +79,16 @@ jobs:
             sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
             cd /home/ec2-user/my-fitness-app
 
-            echo "Force cleaning directory..."
-            rm -rf ..?* .[!.]* * ; echo "Cloning fresh copy..."
+            echo "Force cleaning directory with sudo..."
+            # Using sudo rm -rf . to ensure even hidden/locked files are gone
+            sudo rm -rf ..?* .[!.]* * echo "Cloning fresh copy..."
             git clone https://github.com/${{ github.repository }}.git .
 
-            # 2. Rebuild Environment (Resilient Bootstrap)
+            # 2. Rebuild Environment
             echo "Setting up Virtual Environment..."
-            rm -rf venv
             python3 -m venv venv --without-pip
             source venv/bin/activate
 
-            # Manual Bootstrap to prevent resolver conflict
             curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py
             python3 get-pip.py "pip<24.1" "setuptools<70" "wheel"
             
@@ -98,9 +97,14 @@ jobs:
 
             # 3. Database Seed
             echo "Seeding Database..."
-            cd backend
-            /home/ec2-user/my-fitness-app/venv/bin/python3 seed.py
-            cd ..
+            if [ -d "backend" ]; then
+              cd backend
+              /home/ec2-user/my-fitness-app/venv/bin/python3 seed.py
+              cd ..
+            else
+              echo "CRITICAL ERROR: backend directory missing!"
+              exit 1
+            fi
 
             # 4. Service Setup
             echo "Configuring Systemd..."
