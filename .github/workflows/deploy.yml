@@ -113,3 +113,4 @@ jobs:
             sudo systemctl enable flask
             sudo systemctl restart flask
             sudo systemctl is-active flask
+            sudo systemctl reload flask
