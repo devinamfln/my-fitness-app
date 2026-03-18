@@ -107,10 +107,12 @@ jobs:
             fi
 
             # 4. Service Setup
+            echo "Force-killing old processes to clear cache..."
+            sudo fuser -k 5000/tcp || true
+            
             echo "Configuring Systemd..."
             sudo cp flask.service /etc/systemd/system/flask.service
             sudo systemctl daemon-reload
             sudo systemctl enable flask
             sudo systemctl restart flask
             sudo systemctl is-active flask
-            sudo systemctl reload flask
