@@ -75,17 +75,22 @@ jobs:
             until command -v git &> /dev/null; do sleep 10; done
 
             # 1. Create and fix permissions
+            echo "cleaning old artifacts and fixing permissions..."
             sudo mkdir -p /home/ec2-user/my-fitness-app
             sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
             cd /home/ec2-user/my-fitness-app
 
             echo "Force cleaning directory with sudo..."
             # Using sudo rm -rf . to ensure even hidden/locked files are gone
-            sudo rm -rf ..?* .[!.]* * echo "Cloning fresh copy..."
+            sudo rm -rf ..?* .[!.]* * 2>/dev/null || true 
+            
+            echo "cloning fresh copy from main branch..."
             git clone https://github.com/${{ github.repository }}.git .
+            sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app 
 
             # 2. Rebuild Environment
             echo "Setting up Virtual Environment..."
+            rm -rf venv 
             python3 -m venv venv --without-pip
             source venv/bin/activate
 
@@ -107,7 +112,7 @@ jobs:
             fi
 
             # 4. Service Setup
-            echo "Force-killing old processes to clear cache..."
+            echo "Force-killing old processes on port 5000..."
             sudo fuser -k 5000/tcp || true
             
             echo "Configuring Systemd..."
@@ -115,4 +120,6 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl enable flask
             sudo systemctl restart flask
+            
+            echo "Deployment Complete. Service status:"
             sudo systemctl is-active flask
