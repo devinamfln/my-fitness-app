@@ -86,7 +86,7 @@ resource "aws_instance" "prison_backend" {
   instance_type          = "t3.micro"
   subnet_id              = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name               = "devina-myfitness"
+  key_name               = "HMPPS-FITNESS-APP"
 
   user_data = <<EOF
 #!/bin/bash
