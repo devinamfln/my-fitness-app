@@ -92,6 +92,15 @@ resource "aws_instance" "prison_backend" {
 #!/bin/bash
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
+# 1 Force the ownershio of the folder to ec2-user
+sudo chown -R ec2-user:ec2-user /home/ec2-user/my-fitness-app
+
+# 2. clean out old ven entirely so it can be rebuilt cleanly
+rm -rf /home/ec2-user/my-fitness-app/venv
+
+#3. Now create the venv
+python3 -m venv venv
+
 echo "Starting setup..."
 dnf update -y
 dnf install -y python3 python3-pip openssl git
